@@ -1,0 +1,45 @@
+name: sr_dn_x2_3dircadb
+suffix: ~
+model_type: DualGuidedModel
+scale: 2
+crop_border: ~
+num_gpu: 1
+manual_seed: 0
+
+datasets:
+  test_1:
+    name: 3dircadb_test
+    type: PairedMaskDataset
+    dataroot_gt: /home/zhiyi/data/3dircadb/img/hr_nd/test
+    dataroot_gt_lr: /home/zhiyi/data/3dircadb/img/lr_nd/x2/test
+    dataroot_lq: /home/zhiyi/data/3dircadb/img/lr_ld/x2/test
+    dataroot_mask: /home/zhiyi/data/3dircadb/mask/x2/test
+    dataroot_avg_ct: /home/zhiyi/data/3dircadb/img/lr_ld/x2/test_avg
+    io_backend:
+      type: disk
+
+network_g:
+  type: DualGuidedJDNSR
+  in_channels: 1
+  out_channels: 1
+  scale: 2
+  num_feat: 64
+  num_block: 10
+
+path:
+  pretrain_network_g: /path/to/your/weights
+  strict_load_g: true
+
+val:
+  save_img: true
+  suffix: ~
+
+  metrics:
+    psnr:
+      type: calculate_psnr
+      crop_border: 2
+      test_y_channel: true
+    ssim:
+      type: calculate_ssim
+      crop_border: 2
+      test_y_channel: true

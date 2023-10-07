@@ -1,0 +1,108 @@
+name: sr_dn_x2_3dircadb
+model_type: DualGuidedModel
+num_gpu: 1
+manual_seed: 10
+scale: 2
+
+datasets:
+  train:
+    name: 3dircadb_train
+    type: PairedMaskDataset
+    dataroot_gt: /home/zhiyi/data/3dircadb/img/hr_nd/train
+    dataroot_gt_lr: /home/zhiyi/data/3dircadb/img/lr_nd/x2/train
+    dataroot_lq: /home/zhiyi/data/3dircadb/img/lr_ld/x2/train
+    dataroot_mask: /home/zhiyi/data/3dircadb/mask/x2/train
+    dataroot_avg_ct: /home/zhiyi/data/3dircadb/img/lr_ld/x2/train_avg
+
+    filename_tmpl: '{}'
+    io_backend:
+      type: disk
+
+    gt_size: 128
+    use_flip: true
+    use_rot: true
+
+    # data loader
+    use_shuffle: true
+    num_worker_per_gpu: 6
+    batch_size_per_gpu: 8
+    dataset_enlarge_ratio: 100
+    prefetch_mode: ~
+
+  val:
+    name: 3dircadb_val
+    type: PairedMaskDataset
+    dataroot_gt: /home/zhiyi/data/3dircadb/img/hr_nd/val
+    dataroot_gt_lr: /home/zhiyi/data/3dircadb/img/lr_nd/x2/val
+    dataroot_lq: /home/zhiyi/data/3dircadb/img/lr_ld/x2/val
+    dataroot_mask: /home/zhiyi/data/3dircadb/mask/x2/val
+    dataroot_avg_ct: /home/zhiyi/data/3dircadb/img/lr_ld/x2/val_avg
+    io_backend:
+      type: disk
+
+network_g:
+  type: DualGuidedJDNSR
+  in_channels: 1
+  out_channels: 1
+  scale: 2
+  num_feat: 64
+  num_block: 10
+
+path:
+  pretrain_network_g: ~
+  strict_load_g: true
+  resume_state: ~
+
+train:
+  ema_decay: 0
+  optim_g:
+    type: Adam
+    lr: !!float 1e-4
+    weight_decay: 0
+    betas: [0.9, 0.99]
+
+  scheduler:
+    type: MultiStepLR
+    milestones: [200000, 400000]
+    gamma: 0.5
+
+  total_iter: 500000
+  warmup_iter: -1  # no warm up
+
+  dn_pixel_opt:
+    type: L1Loss
+    loss_weight: 0.5
+    reduction: mean
+
+  sr_pixel_opt:
+    type: L1Loss
+    loss_weight: 1.0
+    reduction: mean
+
+
+val:
+  val_freq: !!float 1e4
+  save_img: false
+
+  metrics:
+    psnr:
+      type: calculate_psnr
+      crop_border: 2
+      test_y_channel: true
+
+    ssim:
+      type: calculate_ssim
+      crop_border: 2
+      test_y_channel: true
+
+logger:
+  print_freq: 100
+  save_checkpoint_freq: !!float 1e4
+  use_tb_logger: true
+  wandb:
+    project: ~
+    resume_id: ~
+
+dist_params:
+  backend: nccl
+  port: 29500
